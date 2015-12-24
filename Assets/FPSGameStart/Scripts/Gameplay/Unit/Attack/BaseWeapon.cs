@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
-using UnityPooler;
 
 namespace Gameplay.Unit.Attack
 {
@@ -22,7 +21,7 @@ namespace Gameplay.Unit.Attack
 
         protected virtual void Awake()
         {
-            baseBullet.gameObject.PopulatePool(maxBulletPreload);
+            SimplePool.Preload(baseBullet.gameObject, maxBulletPreload);
         }
 
 
@@ -42,7 +41,7 @@ namespace Gameplay.Unit.Attack
             lastShootTime = Time.time + currentWeaponDefinition.GetCoolDown();
             currentWeaponDefinition.SpentAmmo();// remove uma 1
 
-            BaseBullet bulletClone = baseBullet.gameObject.Get().GetComponent<BaseBullet>();
+            BaseBullet bulletClone = SimplePool.Spawn(baseBullet.gameObject).GetComponent<BaseBullet>();
             bulletClone.transform.SetParent(transform);
             bulletClone.transform.localPosition = Vector3.zero;
             bulletClone.transform.forward = transform.forward;

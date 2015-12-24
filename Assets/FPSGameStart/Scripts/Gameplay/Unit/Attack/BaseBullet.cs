@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System;
-using UnityPooler;
 
 namespace Gameplay.Unit.Attack
 {
@@ -28,7 +27,7 @@ namespace Gameplay.Unit.Attack
         {
             yield return new WaitForSeconds(seconds);
 
-            gameObject.Release();
+            SimplePool.Despawn(gameObject);
         }
 
         public void ApplyEffect(IHitByBullet[] hitByBullet)
