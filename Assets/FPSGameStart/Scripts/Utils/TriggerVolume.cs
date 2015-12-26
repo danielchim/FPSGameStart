@@ -1,88 +1,181 @@
 ﻿using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using System;
 
-[RequireComponent(typeof(Collider))]
+//#define DEBUG_TRIGGER_VOLUMES
+
+
+/// <summary>
+/// A wrapper class for triggers that has public events
+/// that other scripts can subscribe to, a public method 
+/// to set the trigger's layer mask, and public methods 
+/// to enable or disable the trigger.
+/// </summary>
+/// 
+[RequireComponent(typeof (Collider))]
 public class TriggerVolume : MonoBehaviour
 {
-    public Action<TriggerVolume, Collider> TriggerEnterAction;
-    public Action<TriggerVolume, Collider> TriggerExitAction;
-    public Action<TriggerVolume, Collider> TriggerStayAction;
+    private new Collider collider;
 
-    // escolher qual layer vai colidir
-    [SerializeField] private LayerMask collisionMask = -1;
-    private Collider colliderObject;
-    // todos os objectos que estao dentro do triggerVolume
-    private List<Collider> containingCollider = new List<Collider>();
+    private List<Collider> containing = new List<Collider>();
 
-
-    public int ContainingCount
+    public int ContainCount
     {
-        get { return containingCollider.Count; }
+        get { return containing.Count; }
     }
+
+    public delegate void TriggerEventDelegate(TriggerVolume volume, Collider collider);
+
+    [SerializeField]
+    private LayerMask collisionMask = -1;
 
 
     private void Awake()
     {
-        Debug.Log("Iniciando Trigger Volume");
-        colliderObject = GetComponent<Collider>();
-        colliderObject.isTrigger = true;
+        collider = GetComponent<Collider>();
+        collider.isTrigger = true;
     }
 
-    private void OnTriggerEnter(Collider coll)
+    public event TriggerEventDelegate OnTriggerEnterEvent;
+
+    private void DispatchOnTriggerEnterEvent(Collider collider)
     {
-        // se não tive no layerMask que esta sendo checado, vota rapido!!!!
-        if (!IsInLayerMask(coll.gameObject))
-            return;
-     
-        // este objeto ja esta na nossa lista, retorna tambem
-        if (containingCollider.Contains(coll))
-            return;
-        
-        // caso seja um collider novo, adiciona
-        containingCollider.Add(coll);
-
-        if (TriggerEnterAction != null)
-            TriggerEnterAction(this, coll);
+        if (OnTriggerEnterEvent != null)
+            OnTriggerEnterEvent(this, collider);
     }
 
-    private void OnTriggerExit(Collider coll)
+    public event TriggerEventDelegate OnTriggerStayEvent;
+    private void DispatchOnTriggerStayEvent(Collider other)
     {
-        // se não tive no layerMask que esta sendo checado, vota rapido!!!!
-        if (!IsInLayerMask(coll.gameObject))
-            return;
-
-        // se não possui o collier sai do metodo
-        if (!containingCollider.Contains(coll))
-            return;
-
-        // caso exista remove
-        containingCollider.Remove(coll);
-
-        if (TriggerExitAction != null)
-            TriggerExitAction(this, coll);
+        if (OnTriggerStayEvent != null)
+            OnTriggerStayEvent(this, collider);
     }
 
-    private void OnTriggerStay(Collider coll)
+    public event TriggerEventDelegate OnTriggerExitEvent;
+    private void DispatchOnTriggerExitEvent(Collider collider)
     {
-        // se não tive no layerMask que esta sendo checado, vota rapido!!!!
-        if (!IsInLayerMask(coll.gameObject))
-            return;
-
-        // se não possui o collier sai do metodo
-        if (!containingCollider.Contains(coll))
-            return;
-
-
-        if (TriggerStayAction != null)
-            TriggerStayAction(this, coll);
+        if (OnTriggerExitEvent != null)
+            OnTriggerExitEvent(this, collider);
     }
 
-    private bool IsInLayerMask(GameObject _targetGameObject)
+   
+
+    public void SetCollisionMask(LayerMask targetLayerMask)
     {
-        return ((collisionMask.value & (1 << _targetGameObject.layer)) > 0);
+        collisionMask = targetLayerMask;
     }
 
+    public void EnableVolume(bool enable)
+    {
+        if (enable)
+            collider.enabled = true;
+        else
+            Disable();
+    }
+
+    private void Disable()
+    {
+        collider.enabled = false;
+
+        if (OnTriggerExitEvent == null)
+            return;
+
+        for (int i = 0; i < containing.Count; i++)
+        {
+            Collider target = containing[i];
+            containing.RemoveAt(i);
+            i--;
+
+            DispatchOnTriggerExitEvent(target);
+        }
+    }
+
+    public Bounds GetBounds()
+    {
+        return collider.bounds;
+    }
+
+    public int GetContainingCount()
+    {
+        return containing.Count;
+    }
+
+    public Collider GetContaining(int index)
+    {
+        return containing[index];
+    }
+
+    public bool Contains(Collider other)
+    {
+        return containing.Contains(other);
+    }
+
+    public void ClearContainingList()
+    {
+        if (containing == null)
+            return;
+
+        for (int i = 0; i < containing.Count; i++)
+        {
+            Collider collider = containing[i];
+
+            if (collider == null)
+                continue;
+
+            OnTriggerExit(collider);
+        }
+        containing.Clear();
+    }
+
+    public void OnTriggerEnter(Collider other)
+    {
+        if (!other.gameObject.IsInLayerMask(collisionMask))
+            return;
+
+        if (!containing.Contains(other))
+        {
+            containing.Add(other);
+            DispatchOnTriggerEnterEvent(other);
+        }
+    }
+
+    public void OnTriggerExit(Collider other)
+    {
+        if (!other.gameObject.IsInLayerMask(collisionMask))
+            return;
+
+        containing.Remove(other);
+        DispatchOnTriggerExitEvent(other);
+    }
+
+    public void OnTriggerStay(Collider other)
+    {
+        if (!other.gameObject.IsInLayerMask(collisionMask))
+            return;
+
+        if (!containing.Contains(other))
+            return;
+
+        DispatchOnTriggerStayEvent(other);
+    }
+
+   
+
+
+#if UNITY_EDITOR && DEBUG_TRIGGER_VOLUMES
+        private void OnDrawGizmos()
+        {
+            if (containing != null)
+            {
+                for (int i = 0; i < containing.Count; i++)
+                {
+                    if (containing[i] != null)
+                    {
+                        Gizmos.DrawSphere(containing[i].transform.position, 0.1f);
+                        Gizmos.DrawLine(transform.position, containing[i].transform.position);
+                    }
+                }
+            }
+        }
+#endif
 
 }
