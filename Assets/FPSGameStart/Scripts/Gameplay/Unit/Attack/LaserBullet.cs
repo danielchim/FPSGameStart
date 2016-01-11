@@ -21,7 +21,7 @@ namespace Gameplay.Unit.Attack
             RaycastHit hit;
 
             shootRay.origin = transform.position;
-            shootRay.direction = transform.forward;
+            shootRay.direction = transform.right;
 
             if (Physics.Raycast(shootRay, out hit, weaponDefinition.GetRange(), _layerMask.value))
             {

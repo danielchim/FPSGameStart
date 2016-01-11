@@ -14,6 +14,10 @@ namespace Gameplay.Unit.Movement
         protected NewBaseUnit baseUnit;
         protected float moveSpeedValue;
 
+        protected float movementSpeed = 10;
+        protected float turningSpeed = 60;
+
+
         private Attribute.Attribute moveSpeedAttribute;
 
         protected virtual void Awake()

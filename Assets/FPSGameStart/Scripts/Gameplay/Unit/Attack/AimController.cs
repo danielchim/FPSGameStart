@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
-using System.Collections;
+using Gameplay.Unit.Animation;
+
 namespace Gameplay.Unit.Attack
 {
     public class AimController : MonoBehaviour
@@ -11,9 +12,13 @@ namespace Gameplay.Unit.Attack
             get { return currentWeapon; }
         }
 
+
+        private Animator anim;
         private void Awake()
         {
             currentWeapon = GetComponentInChildren<BaseWeapon>();
+
+            anim = GetComponent<Animator>();
         }
 
         private void Update()
@@ -26,7 +31,13 @@ namespace Gameplay.Unit.Attack
                 if (currentWeapon.IsCoolDown())
                     return;
 
+                PlayerAnimation.ShootHipAnim(true);
                 currentWeapon.Shoot();
+            }
+
+            if (Input.GetMouseButtonUp(0))
+            {
+                PlayerAnimation.ShootHipAnim(false);
             }
         }
     }
